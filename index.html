@@ -51,18 +51,9 @@
     requestAnimationFrame(onrender);
     ctx.clearRect(0,0,canvas.width,canvas.height);
     analyser.getByteFrequencyData(freqData);
-
-    //circle
+    //get circle size
     var circleSize=clamp(meanArray(freqData.slice(0,200)),0,255,0,Math.min(canvas.width,canvas.height)/3);
-    ctx.save();
-    ctx.translate(canvas.width/2,canvas.height/2);
-    ctx.beginPath();
-    ctx.arc(0,0,circleSize,0,Math.PI*2,false);
-    ctx.closePath();
-    ctx.fillStyle='pink';
-    ctx.fill();
-    ctx.restore();
-    //bar
+    //draw bars
     var bars=[];
     for (var i = 0; i < freqData.length;) {
       bars.push(freqData.slice(i,i+NFREQ_PER_DIV));
@@ -75,10 +66,20 @@
     var barHalfWidth=barWidth/2;
     for (var i = 0; i < bars.length; i++) {
       var mean=meanArray(bars[i]);
-      ctx.rotate(DEG*degrePerBars);
       ctx.fillStyle=BARSCOLORLIST[i];
-      ctx.fillRect(barHalfWidth,circleSize/2,barWidth,clamp(mean,0,255,0,Math.min(canvas.width,canvas.height)/2));
+      ctx.fillRect(-barHalfWidth,circleSize*0.6,barWidth,clamp(mean,0,255,0,Math.min(canvas.width,canvas.height)/2));
+      ctx.rotate(DEG*degrePerBars);
     }
+    ctx.restore();
+
+    //draw circle    
+    ctx.save();
+    ctx.translate(canvas.width/2,canvas.height/2);
+    ctx.beginPath();
+    ctx.arc(0,0,circleSize,0,Math.PI*2,false);
+    ctx.closePath();
+    ctx.fillStyle='pink';
+    ctx.fill();
     ctx.restore();
   }
   function onResize(){
