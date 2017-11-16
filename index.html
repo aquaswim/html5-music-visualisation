@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Music Visualisation</title>
+  <style type="text/css">
+    html,body{
+      height: 100%;
+      margin: auto;
+    }
+    #mycanvas{
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body onload="init()">
+<canvas id="mycanvas"></canvas>
+<div id="debug" style="position: absolute;bottom: 5px;margin-left: 10px;"></div>
+<script type="text/javascript">
+  let canvas,ctx,audio,audioCtx,audioSrc,analyser,freqData;
+
+  //preconfigured thing here
+  let
+    FREQ_DIV=64,
+    NFREQ_PER_DIV /*<-Don't set this*/,
+    DEG=Math.PI/180;
+
+  let BARSCOLORLIST=[];
+  for (var i = 0; i < FREQ_DIV; i++) {
+    BARSCOLORLIST.push("rgb("+genRandom(0,255)+","+genRandom(0,255)+","+genRandom(0,255)+")");
+  }
+
+  function init() {
+    canvas=document.getElementById('mycanvas');
+    ctx=canvas.getContext('2d');
+    audioCtx=new AudioContext();
+    audio=new Audio();
+    audio.src="./music/music.mp3";
+    audioSrc=audioCtx.createMediaElementSource(audio);
+    audioSrc.connect(audioCtx.destination);
+    analyser=audioCtx.createAnalyser();
+    audioSrc.connect(analyser);
+    freqData=new Uint8Array(analyser.frequencyBinCount);
+    NFREQ_PER_DIV=freqData.length/FREQ_DIV;
+    onResize();
+    addEventListener("resize",onResize,false);
+    audio.play();
+    onrender();
+  }
+  function onrender(){
+    requestAnimationFrame(onrender);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    analyser.getByteFrequencyData(freqData);
+
+    //circle
+    var circleSize=clamp(meanArray(freqData.slice(0,200)),0,255,0,Math.min(canvas.width,canvas.height)/3);
+    ctx.save();
+    ctx.translate(canvas.width/2,canvas.height/2);
+    ctx.beginPath();
+    ctx.arc(0,0,circleSize,0,Math.PI*2,false);
+    ctx.closePath();
+    ctx.fillStyle='pink';
+    ctx.fill();
+    ctx.restore();
+    //bar
+    var bars=[];
+    for (var i = 0; i < freqData.length;) {
+      bars.push(freqData.slice(i,i+NFREQ_PER_DIV));
+      i=i+NFREQ_PER_DIV;
+    }
+    ctx.save();
+    ctx.translate(canvas.width/2,canvas.height/2);
+    var degrePerBars=360/bars.length;
+    var barWidth=Math.min(canvas.width,canvas.height)/bars.length;
+    var barHalfWidth=barWidth/2;
+    for (var i = 0; i < bars.length; i++) {
+      var mean=meanArray(bars[i]);
+      ctx.rotate(DEG*degrePerBars);
+      ctx.fillStyle=BARSCOLORLIST[i];
+      ctx.fillRect(barHalfWidth,circleSize/2,barWidth,clamp(mean,0,255,0,Math.min(canvas.width,canvas.height)/2));
+    }
+    ctx.restore();
+  }
+  function onResize(){
+    canvas.width=document.body.offsetWidth;
+    canvas.height=document.body.offsetHeight;
+  }
+  //helper
+  function meanArray(array){
+    var out=0;
+    array.forEach(function(x){
+      out+=x;
+    });
+    return out/array.length;
+  }
+  function clamp(x,imin,imax,tmin,tmax){
+    return ((x-imin)/(imax-imin)*(tmax-tmin))+tmin;
+  }
+  function genRandom(min,max){
+    return Math.floor((Math.random()*(max-min))+min);
+  }
+  function printDebug(t){
+    document.getElementById("debug").innerHTML=t;;
+  }
+</script>
+</body>
+</html>
